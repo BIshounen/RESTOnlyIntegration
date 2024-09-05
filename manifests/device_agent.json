@@ -1,0 +1,9 @@
+{
+    "supportedTypes":
+    [
+        {
+            "objectTypeId": "metadata.api.stub.object.type",
+            "attributes": []
+        }
+    ]
+}

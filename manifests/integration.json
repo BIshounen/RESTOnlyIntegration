@@ -1,0 +1,8 @@
+{
+    "id": "nx.metadata_api_test_application3",
+    "name": "Metadata API test application",
+    "description": "Test application for Nx Metadata API",
+    "vendor": "Network Optix",
+    "version": "0.0.1",
+    "isRESTOnly": true
+}

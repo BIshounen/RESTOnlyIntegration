@@ -1,0 +1,12 @@
+{
+    "typeLibrary":
+    {
+        "objectTypes":
+        [
+            {
+                "id": "metadata.api.stub.object.type",
+                "name": "Metadata API stub Object Type"
+            }
+        ]
+    }
+}
