@@ -1,0 +1,14 @@
+{
+  "objects": [
+    {
+      "typeId": "metadata.api.stub.object.type",
+      "trackId": "48dfd0a9-2d97-4488-b22b-20e876845a36",
+      "boundingBox": {
+        "x": 0.3720000000000003,
+        "y": 0.33,
+        "width": 0.2,
+        "height": 0.33
+      }
+    }
+  ]
+}

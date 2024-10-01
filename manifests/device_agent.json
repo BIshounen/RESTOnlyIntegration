@@ -4,6 +4,9 @@
         {
             "objectTypeId": "metadata.api.stub.object.type",
             "attributes": []
+        },
+        {
+            "eventTypeId": "nx.stub.lineCrossing"
         }
     ]
 }

@@ -3,22 +3,17 @@ import sys
 import requests
 import json
 
-vms_url = '172.19.7.98'
-vms_port = '7001'
-integrations_register_path = "/rest/v4/analytics/integrations/*/requests"
-users_path = "/rest/v4/users"
-login_path = "/rest/v4/login/sessions"
-devices_path = '/rest/v4/devices'
-object_path = '/rest/v4/analytics/engines/{id}/deviceAgents/{deviceId}/metadata/object'
-engines_path = ''
+import vms_config
 
 
-def register(integration_manifest, engine_manifest):
-    url = 'https://' + vms_url + ':' + vms_port + integrations_register_path
+def register(integration_manifest, engine_manifest, device_agent_manifest):
+    url = 'https://' + vms_config.vms_url + ':' + vms_config.vms_port + vms_config.integrations_register_path
     data = {
         'integrationManifest': integration_manifest,
         'engineManifest': engine_manifest,
-        'pinCode': '1234'
+        'deviceAgentManifest': device_agent_manifest,
+        'pinCode': '1234',
+        'isRestOnly': True
     }
 
     response = requests.post(url, verify=False, json=data, headers={'Content-type': 'application/json'})
@@ -40,42 +35,86 @@ def register(integration_manifest, engine_manifest):
 
 
 def authenticate(username, password):
-    url = 'https://' + vms_url + ':' + vms_port + login_path
+    url = 'https://' + vms_config.vms_url + ':' + vms_config.vms_port + vms_config.login_path
     data = {'username': username, 'password': password, 'setCookie': True, 'durationS': 100}
     response = requests.post(url=url, verify=False, headers={'Content-type': 'application/json'}, data=json.dumps(data))
     if response.status_code == 200:
         return json.loads(response.content).get('token', None)
     else:
-        raise Exception(response.text)
+        raise RuntimeError(response.text)
 
+
+def get_user_parameters(user_id, token):
+    url = 'https://' + vms_config.vms_url + ':' + vms_config.vms_port + vms_config.users_path + "/" + user_id
+    response = requests.get(url, verify=False,
+                            headers={'Content-type': 'application/json', 'Authorization': 'Bearer ' + token})
+    if response.status_code == 200:
+        return json.loads(response.content).get('parameters', {})
+    else:
+        raise RuntimeError(response.text)
 
 def get_integration_approved(user_id, token):
-    url = 'https://' + vms_url + ':' + vms_port + users_path + "/" + user_id
-    response = requests.get(url, verify=False, headers={'Content-type': 'application/json', 'Authorization': 'Bearer ' + token})
-    content = json.loads(response.content)
-    if response.status_code == 200:
-        return content.get('parameters', {}).get('integrationRequestData', {}).get('isApproved', False) is True
-    else:
-        return False
+
+    parameters = get_user_parameters(user_id, token)
+    return parameters.get('integrationRequestData', {}).get('isApproved', False)
 
 
 def get_devices(token):
-    url = 'https://' + vms_url + ':' + vms_port + devices_path
+    url = 'https://' + vms_config.vms_url + ':' + vms_config.vms_port + vms_config.devices_path
     response = requests.get(url, verify=False,
                             headers={'Content-type': 'application/json', 'Authorization': 'Bearer ' + token})
     return json.loads(response.content)
 
 
-def get_engine(integration_id):
-    pass
+def get_device_agents(engine_id, token):
+    url = ('https://' + vms_config.vms_url + ':' + vms_config.vms_port +
+           vms_config.device_agents_path.format(engineId=engine_id))
+
+    response = requests.get(url, verify=False,
+                            headers={'Content-type': 'application/json', 'Authorization': 'Bearer ' + token})
+
+    if response.status_code == 200:
+        return json.loads(response.content)
+    else:
+        raise RuntimeError(response.text)
+
+
+def get_integration_id(user_id, token):
+    parameters = get_user_parameters(user_id, token)
+    return parameters.get('integrationRequestData', {})['integrationId']
+
+
+def get_engine_id(integration_id, token):
+    url = 'https://' + vms_config.vms_url + ':' + vms_config.vms_port + vms_config.engines_path
+    payload = {"integrationId": str(integration_id)}
+    response = requests.get(url,
+                            verify=False, params=payload,
+                            headers={'Content-type': 'application/json', 'Authorization': 'Bearer ' + token})
+    if response.status_code == 200:
+        return json.loads(response.content)[0]['id']
+    else:
+        raise RuntimeError(response.text)
 
 
 def send_object(engine_id, device_id, object_data, token):
-    url = 'https://' + vms_url + ':' + vms_port + object_path.format(id=engine_id, deviceId=device_id)
-    response = requests.get(url, verify=False, data=object_data,
+    url = ('https://' + vms_config.vms_url + ':' +
+           vms_config.vms_port + vms_config.object_path.format(id=engine_id, deviceId=device_id))
+    response = requests.post(url, verify=False, data=json.dumps(object_data),
                             headers={'Content-type': 'application/json', 'Authorization': 'Bearer ' + token})
 
     if response.status_code == 200:
         sys.stdout.write('Successfully sent object')
+    else:
+        sys.stdout.write(str(response.status_code) + ':' + response.text)
+
+
+def send_event(engine_id, device_id, event_data, token):
+    url = ('https://' + vms_config.vms_url + ':' +
+           vms_config.vms_port + vms_config.event_path.format(id=engine_id, deviceId=device_id))
+    response = requests.post(url, verify=False, json=event_data,
+                            headers={'Content-type': 'application/json', 'Authorization': 'Bearer ' + token})
+
+    if response.status_code == 200:
+        sys.stdout.write('Successfully sent event')
     else:
         sys.stdout.write(str(response.status_code) + ':' + response.text)

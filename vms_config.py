@@ -1,0 +1,10 @@
+vms_url = '172.19.7.98'
+vms_port = '7001'
+integrations_register_path = "/rest/v4/analytics/integrations/*/requests"
+users_path = "/rest/v4/users"
+login_path = "/rest/v4/login/sessions"
+devices_path = '/rest/v4/devices'
+object_path = '/rest/v4/analytics/engines/{id}/deviceAgents/{deviceId}/metadata/object'
+event_path = '/rest/v4/analytics/engines/{id}/deviceAgents/{deviceId}/metadata/event'
+engines_path = '/rest/v4/analytics/engines'
+device_agents_path = '/rest/v4/analytics/engines/{engineId}/deviceAgents'

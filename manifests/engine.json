@@ -7,6 +7,13 @@
                 "id": "metadata.api.stub.object.type",
                 "name": "Metadata API stub Object Type"
             }
+        ],
+        "eventTypes":
+        [
+            {
+                "id": "nx.stub.lineCrossing",
+                "name": "Line crossing"
+            }
         ]
     }
 }

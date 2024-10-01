@@ -1,0 +1,12 @@
+{
+  "events": [
+    {
+      "typeId": "nx.stub.lineCrossing",
+      "caption": "Analytics API Line Crossing",
+      "description": "Analytics API Line Crossing event was triggered",
+      "isActive": true,
+      "trackId": "89abcdef-0123-4567-89ab-cdef01234567",
+      "key": ""
+    }
+  ]
+}
