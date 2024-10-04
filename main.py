@@ -3,6 +3,7 @@ import json
 import os
 import sys
 import time
+from pathlib import Path
 
 integration_manifest_path = "manifests/integration.json"
 engine_manifest_path = "manifests/engine.json"
@@ -22,65 +23,64 @@ def register_integration():
                                         )
 
         if _result[0] is None:
-            sys.stdout.write(_result[2])
-            return
+            return _result[2]
 
         _credentials = _result[0]
         os.makedirs(os.path.dirname(credentials_path), exist_ok=True)
+
         with open(credentials_path, 'w') as f:
             json.dump(_credentials, f)
-            sys.stdout.write('Registered. Waiting for approval')
+        sys.stdout.write('Registered. Waiting for approval\n')
+        return None
 
 
-try:
+if __name__ == '__main__':
+    credentials_path = Path(credentials_path)
+
+    # If no credentials file, assuming that Integration is not registered.
+    # Try to register and finish with registration result
+    if not credentials_path.exists():
+        sys.exit(register_integration())
+
     with open(credentials_path, 'r') as credentials_file:
         credentials = json.load(credentials_file)
-        if 'user_name' in credentials and 'password' in credentials:
-            token = rest_methods.authenticate(credentials['user_name'], credentials['password'])
-            approved = rest_methods.get_integration_approved(credentials['user_name'], token)
-            if approved:
 
-                integration_id = rest_methods.get_integration_id(user_id=credentials['user_name'], token=token)
-                engine_id = rest_methods.get_engine_id(integration_id=integration_id, token=token)
-                device_agents = rest_methods.get_device_agents(engine_id=engine_id, token=token)
-                if len(device_agents) == 0:
-                    raise RuntimeError('No devices with Integration enabled')
-                else:
-                    with (open(event_data_path, 'r') as event_data_file,
-                          open(object_data_path, 'r') as object_data_file
-                          ):
+    token = rest_methods.authenticate(credentials['user_name'], credentials['password'])
+    approved = rest_methods.is_integration_approved(credentials['user_name'], token)
 
-                        events = json.load(event_data_file)
-                        additional_data = {
-                            "id": engine_id,
-                            "timestampUs": int(time.time()),
-                            "durationUs": 30000
-                        }
-                        event_data = additional_data | events
-                        rest_methods.send_event(engine_id=engine_id,
-                                                token=token,
-                                                device_id=device_agents[0]['id'],
-                                                event_data=event_data)
+    if not approved:
+        sys.exit('Integration request is not approved yet')
 
-                        objects = json.load(object_data_file)
-                        additional_data = {
-                            "id": engine_id,
-                            "timestampUs": int(time.time()),
-                            "durationUs": 30000,
-                        }
-                        object_data = additional_data | objects
-                        rest_methods.send_object(engine_id=engine_id,
-                                                 token=token,
-                                                 device_id=device_agents[0]['id'],
-                                                 object_data=object_data)
+    integration_id = rest_methods.get_integration_id(user_id=credentials['user_name'], token=token)
+    engine_id = rest_methods.get_engine_id(integration_id=integration_id, token=token)
+    device_agents = rest_methods.get_device_agents(engine_id=engine_id, token=token)
 
+    if len(device_agents) == 0:
+        raise RuntimeError('No devices with Integration enabled')
 
-            else:
-                sys.stdout.write('Integration request is not approved yet')
+    with (open(event_data_path, 'r') as event_data_file, open(object_data_path, 'r') as object_data_file):
+        events = json.load(event_data_file)
+        objects = json.load(object_data_file)
 
-        else:
-            raise RuntimeError('Corrupted credentials file')
+    # Send Event
+    additional_data = {
+        "id": engine_id,
+        "timestampUs": int(time.time()),
+        "durationUs": 30000
+    }
+    event_data = additional_data | events
 
-except OSError as e:
-    if e.errno == 2:
-        register_integration()
+    rest_methods.send_event(engine_id=engine_id, token=token, device_id=device_agents[0]['id'], event_data=event_data)
+    sys.stdout.write('Successfully sent an event\n')
+
+    # Send Object
+    additional_data = {
+        "id": engine_id,
+        "timestampUs": int(time.time()),
+        "durationUs": 30000,
+        }
+
+    object_data = additional_data | objects
+    rest_methods.send_object(engine_id=engine_id, token=token,
+                             device_id=device_agents[0]['id'], object_data=object_data)
+    sys.stdout.write('Successfully sent an object\n')

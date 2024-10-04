@@ -1,5 +1,3 @@
-import sys
-
 import requests
 import json
 
@@ -53,7 +51,7 @@ def get_user_parameters(user_id, token):
     else:
         raise RuntimeError(response.text)
 
-def get_integration_approved(user_id, token):
+def is_integration_approved(user_id, token):
 
     parameters = get_user_parameters(user_id, token)
     return parameters.get('integrationRequestData', {}).get('isApproved', False)
@@ -102,19 +100,16 @@ def send_object(engine_id, device_id, object_data, token):
     response = requests.post(url, verify=False, data=json.dumps(object_data),
                             headers={'Content-type': 'application/json', 'Authorization': 'Bearer ' + token})
 
-    if response.status_code == 200:
-        sys.stdout.write('Successfully sent object')
-    else:
-        sys.stdout.write(str(response.status_code) + ':' + response.text)
+    if response.status_code != 200:
+        raise RuntimeError(str(response.status_code) + ':' + response.text)
 
 
 def send_event(engine_id, device_id, event_data, token):
     url = ('https://' + vms_config.vms_url + ':' +
+
            vms_config.vms_port + vms_config.event_path.format(id=engine_id, deviceId=device_id))
     response = requests.post(url, verify=False, json=event_data,
                             headers={'Content-type': 'application/json', 'Authorization': 'Bearer ' + token})
 
-    if response.status_code == 200:
-        sys.stdout.write('Successfully sent event')
-    else:
-        sys.stdout.write(str(response.status_code) + ':' + response.text)
+    if response.status_code != 200:
+        raise RuntimeError(str(response.status_code) + ':' + response.text)
